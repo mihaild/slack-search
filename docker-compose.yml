@@ -5,6 +5,7 @@ networks:
 volumes:
   es-data:
     driver: local
+  frontend-static:
 
 services:
   elasticsearch:
@@ -16,8 +17,6 @@ services:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
       - xpack.security.enabled=false
-    ports:
-      - "9200:9200"
     ulimits:
       nofile:
         soft: 65536
@@ -40,24 +39,39 @@ services:
       context: ./front
       dockerfile: Dockerfile
     container_name: frontend
-    ports:
-      - "8000:8000"
+    volumes:
+      - frontend-static:/app/build
     environment:
       - ELASTIC_URL=http://elasticsearch:9200
       - NODE_ENV=production
-      - PORT=8000
+      - PORT=3000
       - HOST=0.0.0.0
     networks:
       - slack-search-net
     depends_on:
-      elasticsearch:
-        condition: service_healthy
+      - elasticsearch
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "curl -s --fail http://localhost:8000"]
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:3000"]
       interval: 10s
       timeout: 10s
       retries: 5
+    user: "nobody"
+
+  nginx:
+    image: nginxinc/nginx-unprivileged:1.25-alpine
+    container_name: nginx-slack
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./archive:/var/www/archive:ro
+      - frontend-static:/var/www/react-build:ro
+    networks:
+      - slack-search-net
+    depends_on:
+      - frontend
+    restart: always
     user: "nobody"
 
   indexer:
