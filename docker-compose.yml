@@ -1,0 +1,74 @@
+networks:
+  slack-search-net:
+    driver: bridge
+
+volumes:
+  es-data:
+    driver: local
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.29
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks:
+      - slack-search-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "8000:8000"
+    environment:
+      - ELASTIC_URL=http://elasticsearch:9200
+      - NODE_ENV=production
+      - PORT=8000
+      - HOST=0.0.0.0
+    networks:
+      - slack-search-net
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:8000"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  indexer:
+    profiles: ["index"]
+    build:
+      context: ./back
+      dockerfile: Dockerfile
+    networks:
+      - slack-search-net
+    environment:
+      - ELASTIC_URL=http://elasticsearch:9200
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./archive:/app/archive
+

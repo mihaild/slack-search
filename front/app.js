@@ -46,6 +46,8 @@ const searchkitRouter = SearchkitExpress.createRouter({
 });
 app.use('/api/search', searchkitRouter);
 
-app.listen(8000, 'localhost', () => {
-  console.log('Slack search is listening!');
+const port = process.env.PORT || 8000;
+const host = process.env.HOST || 'localhost';
+app.listen(port, host, () => {
+  console.log('Slack search is listening at %s:%d!', host, port);
 });

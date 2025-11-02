@@ -7,9 +7,10 @@ import requests
 from datetime import datetime
 from termcolor import colored
 import json
+import os
 
 class Elastic:
-    def __init__(self, endpoint='http://localhost:9200'):
+    def __init__(self, endpoint=os.environ.get('ELASTIC_URL', 'http://localhost:9200')):
         self.endpoint = endpoint
         self._bulk_buffer = []
 
@@ -35,27 +36,25 @@ class Elastic:
             '{}/{}'.format(self.endpoint, index),
             json={
                 'mappings': {
-                    '_doc': {
-                        'properties': {
-                            'millits': {
-                                'type': 'date',
-                                'format': 'epoch_millis',
-                            },
-                            'channel': {
-                                'type': 'keyword',
-                            },
-                            'user': {
-                                'type': 'keyword',
-                            },
-                            # username is not a keyword (should this be changed?), because it can be a full name like "John Doe"
-                            'attachments': {
-                                'properties': {
-                                    'ts': {
-                                        'type': 'text', # indexing fails otherwise
-                                    }
+                    'properties': {
+                        'millits': {
+                            'type': 'date',
+                            'format': 'epoch_millis',
+                        },
+                        'channel': {
+                            'type': 'keyword',
+                        },
+                        'user': {
+                            'type': 'keyword',
+                        },
+                        # username is not a keyword (should this be changed?), because it can be a full name like "John Doe"
+                        'attachments': {
+                            'properties': {
+                                'ts': {
+                                    'type': 'text', # indexing fails otherwise
                                 }
-                            },
-                        }
+                            }
+                        },
                     }
                 }
             }
@@ -86,7 +85,7 @@ class Elastic:
             'add': { 'index': index, 'alias': alias }
         })
 
-        print(colored('Redirecting alias {alias} to {index}', 'green'))
+        print(colored(f'Redirecting alias {alias} to {index}', 'green'))
         requests.post(
             '{}/_aliases'.format(self.endpoint),
             json={'actions': actions}
