@@ -40,7 +40,14 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     volumes:
-      - frontend-static:/app/build
+      - type: volume
+        source: frontend-static
+        target: /app/build
+        read_only: true
+      - type: bind
+        source: ./archive
+        target: /archive
+        read_only: true
     environment:
       - ELASTIC_URL=http://elasticsearch:9200
       - NODE_ENV=production
