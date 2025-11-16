@@ -33,6 +33,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    restart: unless-stopped
 
   frontend:
     build:
@@ -57,7 +58,7 @@ services:
       - slack-search-net
     depends_on:
       - elasticsearch
-    restart: always
+    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -s --fail http://localhost:3000"]
       interval: 10s
@@ -79,7 +80,7 @@ services:
       - slack-search-net
     depends_on:
       - frontend
-    restart: always
+    restart: unless-stopped
     user: "nobody"
 
   indexer:
