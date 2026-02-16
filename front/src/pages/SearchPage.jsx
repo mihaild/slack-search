@@ -26,9 +26,9 @@ import SlackSnippet from '../components/SlackSnippet';
 
 const searchkit = new SearchkitManager('/api/search');
 
-const HitItem = observer(props => (
+const HitItem = props => (
   <SlackSnippet message={props.result._source} />
-));
+);
 
 const NoHide = styled.div`
   .is-disabled {
